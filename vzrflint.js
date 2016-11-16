@@ -3,12 +3,113 @@
 	
 	 var NUM_COLS = 12;   
     var COL_CLASSES = [];
+    
+    var COL_REGEX = /\b(tiny|small|medium|large)-(\d{1,2})\b/;
+    var COL_REGEX_G = /\b(tiny|small|medium|large)-(\d{1,2})\b/g;
     var SCREENS = ['tiny', 'small', 'medium', 'large'];
     SCREENS.forEach(function (screen) {
         for (var n = 1; n <= NUM_COLS; n++) {
             COL_CLASSES.push( '.'+screen + '-' + n);
         }
     });
+    var SCREEN2NUM = {
+        'tiny': 0,
+        'small': 1,
+        'medium': 2,
+        'large': 3
+    };
+    var NUM2SCREEN = ['tiny', 'small', 'medium', 'large '];
+     function compareNums(a, b) {
+        return a - b;
+    }
+    function withoutClass(classes, klass) {
+        return classes.replace(new RegExp('\\b' + klass + '\\b', 'g'), '');
+    }
+     function columnClassKey(colClass) {
+        return SCREEN2NUM[COL_REGEX.exec(colClass)[1]];
+    }
+
+    function compareColumnClasses(a, b) {
+        return columnClassKey(a) - columnClassKey(b);
+    }
+
+
+       function incrementingRunsFrom(list) {
+        list = list.concat([Infinity]);// use Infinity to ensure any nontrivial (length >= 2) run ends before the end of the loop
+        var runs = [];
+        var start = null;
+        var prev = null;
+
+        for (var i = 0; i < list.length; i++) {
+            var current = list[i];            
+            if (start === null) {
+                // first element starts a trivial run
+                start = current;
+            }
+            else if (prev + 1 !== current) {
+                // run ended
+                if (start !== prev) {
+                    // run is nontrivial
+                    runs.push([start, prev]);
+                }
+                // start new run
+                start = current;
+            }
+            // else: the run continues
+
+            prev = current;
+        }
+
+        return runs;
+    }
+    function sortedColumnClasses(classes) {
+        // extract column classes
+        var colClasses = [];
+        while (true) {
+            var match = COL_REGEX.exec(classes);
+            if (!match) {
+                break;
+            }
+            var colClass = match[0];
+            colClasses.push(colClass);
+            
+            classes = withoutClass(classes, colClass);
+
+        }
+
+        colClasses.sort(compareColumnClasses);
+        console.log(classes + ' ' + colClasses.join(' '))
+        return classes + ' ' + colClasses.join(' ');
+    }
+
+    function width2screensFor(classes) {
+        var width = null;
+        var width2screens = {};
+        while (true) {
+            var match = COL_REGEX_G.exec(classes);
+            if (!match) {
+                break;
+            }
+            var screen = match[1];            
+            width = match[2];
+            
+            var screens = width2screens[width];
+            
+            if (!screens) {
+                screens = width2screens[width] = [];
+            }
+            screens.push(SCREEN2NUM[screen]);
+            
+        }
+
+        for (width in width2screens) {
+            if (width2screens.hasOwnProperty(width)) {
+                width2screens[width].sort(compareNums);
+            }
+        }
+        	
+        return width2screens;
+    }
    
      function LintError(id, message, elements) {
         this.id = id;
@@ -69,6 +170,39 @@
             reporter("Only columns (`.col-*-*`) may be immediate children of `.row`s", nonColRowChildren);
         }
     });
+    addLinter("E003", function lintImgWithoutAlt($, reporter) {       
+        var selector = 'img:not([alt]),img[alt=""],img[alt=" "]';
+        var nonAltImages = $(selector);
+        if (nonAltImages.length) {
+            reporter("<img>  should have a non empty alt attr", nonAltImages);
+        }
+    });
+     addLinter("E020", function lintTDParentsAreTR($, reporter) {       
+        var selector = '*:not(tr)>td';
+        var nonTRChildren = $(selector);
+        if (nonTRChildren.length) {
+            reporter("<td> should be in <tr>", nonTRChildren);
+        }
+    });
+      addLinter("E004", function lintInputsWithSameID($, reporter) {    
+		  $('[id]').each(function(){
+		  var id = $('[id="'+this.id+'"]');
+		  var labelFor =$('label[for="'+ id+'"]');
+		  if(id.length>1 && id[0]==this) {
+		  	id.addClass('duplicated-input');
+		    console.log('Duplicate id '+this.id);
+		   // alert('duplicate found');
+		  }
+});   
+        var selector = '.duplicated-input';
+        var duplicatedInput = $(selector);
+        if (duplicatedInput.length) {
+            reporter("duplicate input ids found", duplicatedInput);
+        }
+    });
+     
+     
+    
       exports._lint = function ($, reporter, disabledIdList, html) {
        var reporterWrapper = reporter;
 
@@ -136,3 +270,7 @@
         })();
 
 })(typeof exports === 'object' && exports || this);
+
+$(window).on('load',function(){
+	vzrfLint.showLintReportForCurrentDocument([]);
+});
