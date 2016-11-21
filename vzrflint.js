@@ -1,7 +1,7 @@
 //lint js
 (function(exports){
 	
-	 var NUM_COLS = 12;   
+	var NUM_COLS = 12;   
     var COL_CLASSES = [];
     
     var COL_REGEX = /\b(tiny|small|medium|large)-(\d{1,2})\b/;
@@ -22,7 +22,10 @@
      function compareNums(a, b) {
         return a - b;
     }
-    function withoutClass(classes, klass) {
+    function highlightProblem(lint){
+    		$(lint.elements).css({'border':'1px solid red'});
+    }
+       function withoutClass(classes, klass) {
         return classes.replace(new RegExp('\\b' + klass + '\\b', 'g'), '');
     }
      function columnClassKey(colClass) {
@@ -110,7 +113,12 @@
         	
         return width2screens;
     }
-   
+    function LintWarning(id, message, elements) {
+        this.id = id;
+        this.message = message;
+        this.elements = elements || cheerio('');
+    }
+    exports.LintWarning = LintWarning;
      function LintError(id, message, elements) {
         this.id = id;
         this.message = message;
@@ -185,23 +193,150 @@
         }
     });
       addLinter("E004", function lintInputsWithSameID($, reporter) {    
-		  $('[id]').each(function(){
-		  var id = $('[id="'+this.id+'"]');
-		  var labelFor =$('label[for="'+ id+'"]');
+		  $('input[id]').each(function(){
+		  var id = $('[id="'+this.id+'"]');		  
 		  if(id.length>1 && id[0]==this) {
-		  	id.addClass('duplicated-input');
-		    console.log('Duplicate id '+this.id);
-		   // alert('duplicate found');
+		  	id.addClass('duplicated-input');		 
 		  }
-});   
+		});   
         var selector = '.duplicated-input';
         var duplicatedInput = $(selector);
         if (duplicatedInput.length) {
             reporter("duplicate input ids found", duplicatedInput);
         }
     });
-     
-     
+      addLinter("E005", function lintSelectWithSameID($, reporter) {    
+		  $('select[id]').each(function(){
+		  var id = $('[id="'+this.id+'"]');		  
+		  if(id.length>1 && id[0]==this) {
+		  	id.addClass('duplicated-select');		   
+		  }
+		});   
+        var selector = '.duplicated-select';
+        var duplicatedSelect = $(selector);
+        if (duplicatedSelect.length) {
+            reporter("duplicate select ids found", duplicatedSelect);
+        }
+    });
+      addLinter("E006", function lintLabelWithSameFor($, reporter) {    
+		  $('label[for]').each(function(){	
+
+		  var thisFor = $(this).attr('for');	
+		  console.log(thisFor)
+		  var labelFor =$('label[for="'+ thisFor+'"]');
+		  if(labelFor.length>1 && labelFor[0]==this) {
+		  	labelFor.addClass('duplicated-label');
+		    console.log('Duplicate id '+this.for);
+		   // alert('duplicate found');
+		  }
+		});   
+        var selector = '.duplicated-label';
+        var duplicatedInput = $(selector);
+        if (duplicatedInput.length) {
+            reporter("duplicate label for attr found", duplicatedInput);
+        }
+    });
+       addLinter("E007", function lintInputIDLabelForMismatch($, reporter) {  
+            
+        $('input[id]').each(function(){
+        	var idVal = $(this).attr('id');
+        	var elem=$(this).filter(function() { return !$(this).prev().is('label[for="'+idVal+'"]') });
+        	elem.addClass('no-associated-label');
+        });       
+         var selector = '.no-associated-label'
+       var noLabelAssociatedInput =  $(selector);
+        if (noLabelAssociatedInput.length) {
+            reporter("Input(s) without associated label  ", noLabelAssociatedInput);
+        }
+    });
+    
+     addLinter("E08", function lintRedundantColumnClasses($, reporter) {
+        var columns = $(COL_CLASSES.join(','));
+        columns.each(function (_index, col) {
+            var column = $(col);
+            var classes = column.attr('class');
+            var simplifiedClasses = classes;
+            var width2screens = width2screensFor(classes);
+            var isRedundant = false;
+            for (var width = 1; width <= NUM_COLS; width++) {
+                var screens = width2screens[width];
+                if (!screens) {
+                    continue;
+                }
+                var runs = incrementingRunsFrom(screens);
+                if (!runs.length) {
+                    continue;
+                }
+
+                isRedundant = true;
+
+                for (var i = 0; i < runs.length; i++) {
+                    var run = runs[i];
+                    var min = run[0];
+                    var max = run[1];
+
+                    // remove redundant classes
+                    for (var screenNum = min + 1; screenNum <= max; screenNum++) {
+                        var colClass = 'col-' + NUM2SCREEN[screenNum] + '-' + width;
+                        simplifiedClasses = withoutClass(simplifiedClasses, colClass);
+                    }
+                }
+            }
+            if (!isRedundant) {
+                return;
+            }
+
+            simplifiedClasses = sortedColumnClasses(simplifiedClasses);
+            simplifiedClasses = simplifiedClasses.trim().split(" ")[0];
+            var oldClass = '`class="' + classes + '"`';
+            var newClass = '`class="' + simplifiedClasses + '"`';
+            reporter(
+                "Since grid classes apply to devices with screen widths greater than or equal to the breakpoint sizes (unless overridden by grid classes targeting larger screens), " +
+                oldClass + " is redundant and can be simplified to " + newClass,
+                column
+            );
+        });
+    });
+     addLinter("E009", function lintInputWithoutIdOrTitle($, reporter) {       
+        var noIdInput = 'input:not([id]),input[id=""],input[id=" "]';
+        $(noIdInput).each(function(){
+        	var nonTitle =$(this).filter(function() { return !$(this).is('[title]') });
+        	$(nonTitle).addClass('input-no-id');
+        });
+        var selector = '.input-no-id';
+        var noIdOrTitle = $(selector);
+        if (noIdOrTitle.length) {
+            reporter("Input(s) should have a title if it is not associated with a label  ", noIdOrTitle);
+        }
+    });
+      addLinter("E010", function lintSelectWithoutIdOrTitle($, reporter) {       
+        var noIdSelect = 'select:not([id]),select[id=""],select[id=" "]';
+        $(noIdSelect).each(function(){
+        	var nonTitle =$(this).filter(function() { return !$(this).is('[title]') });
+        	$(nonTitle).addClass('select-no-id');
+        });
+        var selector = '.select-no-id';
+       var noIdOrTitle = $(selector);
+        if (noIdOrTitle.length) {
+            reporter("select(s) should have a title if it is not associated with a label  ", noIdOrTitle);
+        }
+    });
+      addLinter("W001", function lintSRonlyAfterIcons($, reporter) {       
+        
+         //var selector = 
+        var noSrOnly =  $('.vzicon').filter(function() { return !$(this).next().is('.sr-only') });//$(selector);
+        if (noSrOnly.length) {
+            reporter("It is recommended to have sr-only description for Non-decorative icons  ", noSrOnly);
+        }
+    });
+        addLinter("W002", function lintSRonlyAfterIcons($, reporter) {       
+        
+         var selector = 'a:not([title]),a[title=""],a[title=" "]';
+        var noTitleAnchor =  $(selector);
+        if (noTitleAnchor.length) {
+            reporter("It is recommended to have title attr for <a> elements  ", noTitleAnchor);
+        }
+    });
     
       exports._lint = function ($, reporter, disabledIdList, html) {
        var reporterWrapper = reporter;
@@ -251,6 +386,7 @@
                     }
                     else {
                         console.warn("vzrfLint: %c " + lint.id + " ", background, lint.message + '\n', lint.elements);
+                       // highlightProblem(lint);
                     }
                     errorCount++;
                 };
