@@ -6,7 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 <meta name="format-detection" content="telephone=no">
 <link href="http://respframework.verizon.com/vzrf/2-20-0/stylesheets/complete/vzrf.css" rel="stylesheet" />
+
 <title>VZRF Lint</title>
+<style>
+
+</style>
 </head>
 	<body>
 		<div class="page active">
@@ -36,11 +40,20 @@
 		<div class="column tiny-12">
 		<label for="info2">Test</label>
 			<input type="text" id="newInput2	">
-			<img src="epfo-forgpt-uan-pass.png" width="300" height="300" alt="EPFO Forgot">
+			<img src="epfo-forgpt-uan-pass.png" width="300" height="300" >
 			<label for="info">Test2</label>
 			<input type="text" id="newInput">
-
+			<input type="checkbox" id="CheckExampleA">
+			<label for="CheckExampleA1">Checkbox Example A</label><br>
 			<input type="text">
+			<select id="CuteAnimals" role="combobox">
+					<option disabled="" selected="">Choose an animal</option>
+					<option>Kitten</option>
+					<option>Puppy</option>
+					<option>Piglet</option>
+					<option>Fawn</option>
+					<option>Spider Hatchling?</option>
+				</select>
 		</div>
 		<table>
 		<td></td>
@@ -50,7 +63,9 @@
 		</table>
 		</main>
 	</div>
-	<script src="../js/jquery-1.11.2.min.js"></script>
+	<script src="http://respframework.verizon.com/vzrf/2-20-0/js/complete/vzrf.js"></script>
+<script src="jquery-1.12.4.min.js"></script>
+<script src="vzrfinit.js"></script>
 	<script src="vzrflint.js"></script>
 	
 </body>
