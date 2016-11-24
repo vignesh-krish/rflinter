@@ -3,7 +3,7 @@
 	
 	var NUM_COLS = 12;   
     var COL_CLASSES = [];
-    
+    var TOOLTIP='<div class="w_tooltip"  data-tooltip=""><div class="tooltip_x" data-close-tooltip></div><h4 data-tip-title> Test</h4> <p data-message>Static error message</p></div>';
     var COL_REGEX = /\b(tiny|small|medium|large)-(\d{1,2})\b/;
     var COL_REGEX_G = /\b(tiny|small|medium|large)-(\d{1,2})\b/g;
     var SCREENS = ['tiny', 'small', 'medium', 'large'];
@@ -23,7 +23,21 @@
         return a - b;
     }
     function highlightProblem(lint){
-    		$(lint.elements).css({'border':'1px solid red'});
+    	//	$(lint.elements).css({'border':'1px solid red'});
+		var lintId = lint.id;
+		
+		if(lintId.indexOf('E')>-1){
+		var toolTip = '<div class="w_tooltip"  data-tooltip="'+lintId+'"><div class="tooltip_x" data-close-tooltip></div><h4 data-tip-title> Test</h4> <p data-message>Static error message</p></div>';
+		var message="<span class='error-number pointer' data-open-tooltip='"+lintId+"'title='Please refer browser console for more info'>"+lintId+"</span>";
+		var errorMessage = $(message).append(toolTip);
+		$(lint.elements).before(errorMessage);
+		
+		//$(lint.elements).wrap("<div class='error-highlighter'>  <a class='error-number pointer' title='Please refer browser console for more info'><span class='vzicon icon-alert text-alert small'></span></a></div>");
+		}
+		else{
+		$(lint.elements).after("<span class='warning-number pointer' title='Please refer browser console for more info'>"+lintId+"</span>");
+		}
+		
     }
        function withoutClass(classes, klass) {
         return classes.replace(new RegExp('\\b' + klass + '\\b', 'g'), '');
@@ -81,7 +95,7 @@
         }
 
         colClasses.sort(compareColumnClasses);
-        console.log(classes + ' ' + colClasses.join(' '))
+       // console.log(classes + ' ' + colClasses.join(' '))
         return classes + ' ' + colClasses.join(' ');
     }
 
@@ -175,7 +189,7 @@
 
         var nonColRowChildren = $(selector);
         if (nonColRowChildren.length) {
-            reporter("Only columns (`.col-*-*`) may be immediate children of `.row`s", nonColRowChildren);
+            reporter("Only columns  may be immediate children of `.row`s", nonColRowChildren);
         }
     });
     addLinter("E003", function lintImgWithoutAlt($, reporter) {       
@@ -222,35 +236,38 @@
 		  $('label[for]').each(function(){	
 
 		  var thisFor = $(this).attr('for');	
-		  console.log(thisFor)
+		 // console.log(thisFor)
 		  var labelFor =$('label[for="'+ thisFor+'"]');
 		  if(labelFor.length>1 && labelFor[0]==this) {
 		  	labelFor.addClass('duplicated-label');
-		    console.log('Duplicate id '+this.for);
+		   // console.log('Duplicate id '+this.for);
 		   // alert('duplicate found');
 		  }
 		});   
         var selector = '.duplicated-label';
         var duplicatedInput = $(selector);
         if (duplicatedInput.length) {
-            reporter("duplicate label for attr found", duplicatedInput);
+            reporter("Found duplicate  for attr in  label(s)", duplicatedInput);
         }
     });
        addLinter("E007", function lintInputIDLabelForMismatch($, reporter) {  
             
         $('input[id]').each(function(){
         	var idVal = $(this).attr('id');
-        	var elem=$(this).filter(function() { return !$(this).prev().is('label[for="'+idVal+'"]') });
+        	var elem=$(this).filter(function() { return !$(this).closest().is('label[for="'+idVal+'"]') });
         	elem.addClass('no-associated-label');
+			if($(this).is('[type="checkbox"]')){
+				$(this).next('label').addClass('no-associated-label');
+			}
         });       
          var selector = '.no-associated-label'
        var noLabelAssociatedInput =  $(selector);
         if (noLabelAssociatedInput.length) {
-            reporter("Input(s) without associated label  ", noLabelAssociatedInput);
+            reporter("Input(s) without associated label or the label for attr does not match ", noLabelAssociatedInput);
         }
     });
     
-     addLinter("E08", function lintRedundantColumnClasses($, reporter) {
+     addLinter("E008", function lintRedundantColumnClasses($, reporter) {
         var columns = $(COL_CLASSES.join(','));
         columns.each(function (_index, col) {
             var column = $(col);
@@ -321,20 +338,20 @@
             reporter("select(s) should have a title if it is not associated with a label  ", noIdOrTitle);
         }
     });
-      addLinter("W001", function lintSRonlyAfterIcons($, reporter) {       
+      addLinter("W00A1", function lintSRonlyAfterIcons($, reporter) {       
         
          //var selector = 
         var noSrOnly =  $('.vzicon').filter(function() { return !$(this).next().is('.sr-only') });//$(selector);
         if (noSrOnly.length) {
-            reporter("It is recommended to have sr-only description for Non-decorative icons  ", noSrOnly);
+            reporter("It is recommended to have sr-only description for Non-decorative icons as per vzrf A11y convention ", noSrOnly);
         }
     });
-        addLinter("W002", function lintSRonlyAfterIcons($, reporter) {       
+        addLinter("W00A2", function lintAnchorWithNoTitle($, reporter) {       
         
-         var selector = 'a:not([title]),a[title=""],a[title=" "]';
+         var selector = ':not(.ui-datepicker) a, a:not([title]),a[title=""],a[title=" "]';
         var noTitleAnchor =  $(selector);
         if (noTitleAnchor.length) {
-            reporter("It is recommended to have title attr for <a> elements  ", noTitleAnchor);
+            reporter("It is recommended to have title attr for <a> elements  as per basic accessibility", noTitleAnchor);
         }
     });
     
@@ -386,7 +403,7 @@
                     }
                     else {
                         console.warn("vzrfLint: %c " + lint.id + " ", background, lint.message + '\n', lint.elements);
-                       // highlightProblem(lint);
+                        highlightProblem(lint);
                     }
                     errorCount++;
                 };
@@ -405,8 +422,9 @@
             window.vzrfLint = exports;
         })();
 
-})(typeof exports === 'object' && exports || this);
+})({});
 
 $(window).on('load',function(){
+	$('head').append('<style type="text/css">.error-highlighter { position: relative; width: auto;  padding: 10px; } span.error-number { top: 0; right: 0; width: auto; background: #ffcfd0; padding: 5px; border-radius: 4px; border: 2px solid #f79973; box-shadow: 0 3px 8px 1px #a2a2a2; font-weight: bold; color: #000; } .warning-highlighter { position: relative; width: auto;  padding: 10px; } span.warning-number { position: static; top: 0; right: 0; width: auto; background: #f8d362; padding: 5px; color: #000; border: 2px solid brown; font-weight: bold; border-radius: 4px; box-shadow: 0 3px 8px 1px #a2a2a2; }</style>');
 	vzrfLint.showLintReportForCurrentDocument([]);
 });
