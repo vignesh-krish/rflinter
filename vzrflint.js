@@ -25,19 +25,26 @@
     function highlightProblem(lint){
     	//	$(lint.elements).css({'border':'1px solid red'});
 		var lintId = lint.id;
-		
+		//var lintMessage =lint.message;
 		if(lintId.indexOf('E')>-1){
-		var toolTip = '<div class="w_tooltip"  data-tooltip="'+lintId+'"><div class="tooltip_x" data-close-tooltip></div><h4 data-tip-title> Test</h4> <p data-message>Static error message</p></div>';
-		var message="<span class='error-number pointer' data-open-tooltip='"+lintId+"'title='Please refer browser console for more info'>"+lintId+"</span>";
-		var errorMessage = $(message).append(toolTip);
-		$(lint.elements).before(errorMessage);
-		
+		//var toolTip = '<div class="w_tooltip"  data-tooltip="'+lintId+'"><div class="tooltip_x" data-close-tooltip></div><h6 class="margin-bottom-small text-brand-1" data-tip-title>'+lintId+'</h4> <p data-message>'+lintMessage+'</p></div>';
+		var message="<span class='error-number pointer' data-open-linterTip='"+lintId+"'>"+lintId+"</span>";
+		//var errorMessage = $(message).append(toolTip);
+		$(lint.elements).after(message);
+		createToolip(lint);
 		//$(lint.elements).wrap("<div class='error-highlighter'>  <a class='error-number pointer' title='Please refer browser console for more info'><span class='vzicon icon-alert text-alert small'></span></a></div>");
 		}
 		else{
-		$(lint.elements).after("<span class='warning-number pointer' title='Please refer browser console for more info'>"+lintId+"</span>");
+		$(lint.elements).append("<span class='warning-number pointer' title='Please refer browser console for more info'>"+lintId+"</span>");
 		}
 		
+    }
+    function createToolip(lint){
+    	var lintId = lint.id;
+    	var lintMessage =lint.message;
+   		var toolTip = '<div class="w_tooltip"  data-linterTip="'+lintId+'"><div class="tooltip_x" data-close-linterTip></div><h6 class="margin-bottom-micro text-brand-1" data-tip-title>'+lintId+'</h4> <p data-message>'+lintMessage+'</p></div>';
+   		$('body').append(toolTip);
+
     }
        function withoutClass(classes, klass) {
         return classes.replace(new RegExp('\\b' + klass + '\\b', 'g'), '');
@@ -196,7 +203,7 @@
         var selector = 'img:not([alt]),img[alt=""],img[alt=" "]';
         var nonAltImages = $(selector);
         if (nonAltImages.length) {
-            reporter("<img>  should have a non empty alt attr", nonAltImages);
+            reporter("img element should have a non empty alt attr", nonAltImages);
         }
     });
      addLinter("E020", function lintTDParentsAreTR($, reporter) {       
@@ -206,6 +213,23 @@
             reporter("<td> should be in <tr>", nonTRChildren);
         }
     });
+     addLinter("E007", function lintInputIDLabelForMismatch($, reporter) {  
+            
+        $('input[id]').each(function(){
+        	var idVal = $(this).attr('id');
+        	var elem=$(this).filter(function() { return !$(this).closest().is('label[for="'+idVal+'"]') });
+        	elem.addClass('no-associated-label');
+			if($(this).is('[type="checkbox"]')){
+				$(this).next('label').addClass('no-associated-label');
+			}
+        });       
+         var selector = '.no-associated-label'
+       var noLabelAssociatedInput =  $(selector);
+        if (noLabelAssociatedInput.length) {
+            reporter("Input(s) without associated label or the label for attr does not match ", noLabelAssociatedInput);
+        }
+    });
+    
       addLinter("E004", function lintInputsWithSameID($, reporter) {    
 		  $('input[id]').each(function(){
 		  var id = $('[id="'+this.id+'"]');		  
@@ -250,23 +274,7 @@
             reporter("Found duplicate  for attr in  label(s)", duplicatedInput);
         }
     });
-       addLinter("E007", function lintInputIDLabelForMismatch($, reporter) {  
-            
-        $('input[id]').each(function(){
-        	var idVal = $(this).attr('id');
-        	var elem=$(this).filter(function() { return !$(this).closest().is('label[for="'+idVal+'"]') });
-        	elem.addClass('no-associated-label');
-			if($(this).is('[type="checkbox"]')){
-				$(this).next('label').addClass('no-associated-label');
-			}
-        });       
-         var selector = '.no-associated-label'
-       var noLabelAssociatedInput =  $(selector);
-        if (noLabelAssociatedInput.length) {
-            reporter("Input(s) without associated label or the label for attr does not match ", noLabelAssociatedInput);
-        }
-    });
-    
+       
      addLinter("E008", function lintRedundantColumnClasses($, reporter) {
         var columns = $(COL_CLASSES.join(','));
         columns.each(function (_index, col) {
@@ -390,11 +398,11 @@
                 	
                     var background = "background: #" + (lint.id[0] === "W" ? "f0ad4e" : "d9534f") + "; color: #ffffff;";
                     if (!seenLint) {
-                        if (alertOnFirstProblem) {
+                        /*if (alertOnFirstProblem) {
                            
                             window.alert("vzrfLint found errors in this document! See the JavaScript console for details.");
                             
-                        }
+                        }*/
                         seenLint = true;
                     }
 
@@ -411,6 +419,7 @@
 
                 if (errorCount > 0) {
                     console.info("vzrfLint: For details, look up the lint problem IDs in the html");
+                    appendMessageDiv(errorCount);
                 }
                 else if (alertIfNoProblems) {
                    
@@ -425,6 +434,47 @@
 })({});
 
 $(window).on('load',function(){
-	$('head').append('<style type="text/css">.error-highlighter { position: relative; width: auto;  padding: 10px; } span.error-number { top: 0; right: 0; width: auto; background: #ffcfd0; padding: 5px; border-radius: 4px; border: 2px solid #f79973; box-shadow: 0 3px 8px 1px #a2a2a2; font-weight: bold; color: #000; } .warning-highlighter { position: relative; width: auto;  padding: 10px; } span.warning-number { position: static; top: 0; right: 0; width: auto; background: #f8d362; padding: 5px; color: #000; border: 2px solid brown; font-weight: bold; border-radius: 4px; box-shadow: 0 3px 8px 1px #a2a2a2; }</style>');
+	$('head').append('<style type="text/css">.lintErrorReport{position:fixed;top:0; display:none; z-index:2;height:70px;font-family:"BrandFont";width:100%; border:1px solid #C6E9FD; padding:12px; background:#E8F6FE;} .lintErrorReport.shown+body{margin-top:70px;} span.error-number { top: 0; right: 0; width: auto; background: #ffcfd0; padding: 5px; border-radius: 4px; border: 2px solid #f79973; box-shadow: 0 3px 8px 1px #a2a2a2; font-weight: bold; color: #000; display:inline-block;} .warning-highlighter { position: relative; width: auto;  padding: 10px; } span.warning-number { position: static; display:inline-block;top: 0; right: 0; width: auto; background: #f8d362; padding: 5px; color: #000; border: 2px solid brown; font-weight: bold; border-radius: 4px; box-shadow: 0 3px 8px 1px #a2a2a2; }</style>');
 	vzrfLint.showLintReportForCurrentDocument([]);
+ 
+	$('[data-open-linterTip]').on('click',function(){
+			showTooltip(this);
+	});
+	$('[data-close-linterTip]').on('click',function(){
+			hideTooltip(this);
+	});
+	/*$(document).on('click',function(event){
+			if (!$(event.target).is("[data-linterTip],[data-open-linterTip],[data-message],[data-tip-title]")) {
+        			hideTooltip();
+        			console.log(event.target)
+    		} 
+	});
+	*/
 });
+function showTooltip(thisTip){
+	hideTooltip();
+	var attrVal = $(thisTip).attr('data-open-linterTip');
+	var topPos = $(thisTip).offset().top,leftPos= $(thisTip).offset().left;
+	$('[data-linterTip='+attrVal+']').css({
+		'display':'block',
+		'position':'absolute',
+		'top':topPos,
+		'left':leftPos + 40
+	});
+}
+function hideTooltip(toHide){
+		if(typeof toHide =='undefined'){
+			$('[data-linterTip]').hide();
+		}
+		else{
+			$(toHide).parent().hide();
+		}
+
+	}
+function appendMessageDiv(errorCount){
+	var noOfErrors = $('.error-number').length,
+		noOfWarnings = $('.warning-number').length;
+
+	$('body').before('<div class="lintErrorReport shadow text-center"><p class=" margin-bottom-zero bold">Linter found '+noOfErrors+' <span class="text-alert">error(s)</span> and '+noOfWarnings+' <span class="text-warning">warning(s)</span>.</p><p class="margin-bottom-zero">Click on the lint ID or see console for more info.</p></div>').css('transition','margin 1s ease-in');
+	$('.lintErrorReport').addClass('shown').slideDown(1000)
+}
